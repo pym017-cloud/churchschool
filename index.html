@@ -1,0 +1,843 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no">
+<title>순천침례교회 교육부</title>
+<meta name="mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+<meta name="apple-mobile-web-app-title" content="교육부">
+<meta name="theme-color" content="#1D9E75">
+<script src="https://www.gstatic.com/firebasejs/10.7.0/firebase-app-compat.js"></script>
+<script src="https://www.gstatic.com/firebasejs/10.7.0/firebase-database-compat.js"></script>
+<style>
+*{margin:0;padding:0;box-sizing:border-box}
+body{font-family:-apple-system,BlinkMacSystemFont,'Apple SD Gothic Neo','Noto Sans KR',sans-serif;background:#f8f6f2}
+button,input,textarea{font-family:inherit}
+button{cursor:pointer}
+:root{--c:#1D9E75;--cl:#E1F5EE}
+
+#app{max-width:480px;margin:0 auto;min-height:100vh;display:flex;flex-direction:column}
+
+/* 로그인 */
+#login-wrap{min-height:100vh;display:flex;flex-direction:column;align-items:center;justify-content:center;padding:24px}
+.lbox{width:100%;max-width:360px;background:#fff;border-radius:16px;padding:24px;box-shadow:0 2px 16px rgba(0,0,0,.08)}
+.tbtn{padding:13px 6px;border-radius:10px;border:1.5px solid #eee;background:#fafafa;font-size:14px;font-weight:500;color:#333;text-align:center;transition:all .15s}
+.tbtn:hover{border-color:var(--c);background:var(--cl);color:var(--c)}
+
+/* 반 등록 */
+#class-wrap{min-height:100vh;display:flex;flex-direction:column;align-items:center;justify-content:center;padding:24px}
+.cbtn{padding:14px 16px;border-radius:12px;border:1.5px solid #eee;background:#fff;font-size:14px;font-weight:500;color:#333;text-align:left;display:flex;align-items:center;gap:10px;transition:all .15s;margin-bottom:8px;width:100%}
+.cbtn:hover,.cbtn.sel{border-color:var(--c);background:var(--cl);color:var(--c)}
+
+/* 헤더 */
+#header{color:#fff;padding:14px 20px 0;position:sticky;top:0;z-index:10;background:var(--c)}
+.dtab{padding:8px 14px;border-radius:8px 8px 0 0;border:none;font-size:12px;font-weight:600;color:#fff;background:rgba(255,255,255,.2);transition:all .15s}
+.dtab.on{background:#fff}
+
+/* 기능탭 */
+#ftabs{display:flex;background:#fff;border-bottom:1px solid #eee;position:sticky;top:88px;z-index:9}
+.ftab{flex:1;padding:12px 4px 10px;background:none;border:none;border-bottom:2.5px solid transparent}
+.ftab .ic{font-size:18px;margin-bottom:2px}
+.ftab .lb{font-size:11px;color:#aaa}
+.ftab.on .lb{font-weight:600}
+
+/* 콘텐츠 */
+#content{flex:1;overflow-y:auto}
+.panel{display:none;padding:16px}
+.panel.on{display:block}
+
+/* 공통 */
+.card{background:#fff;border-radius:12px;border:1px solid #eee;padding:14px 16px;margin-bottom:8px}
+.row{display:flex;align-items:center;gap:12px;width:100%;padding:12px 14px;background:#fff;border-radius:10px;border:1px solid #eee;text-align:left;margin-bottom:6px}
+.av{width:36px;height:36px;border-radius:50%;display:flex;align-items:center;justify-content:center;font-size:15px;font-weight:600;flex-shrink:0;background:var(--cl);color:var(--c)}
+.sl{font-size:12px;font-weight:600;color:#888;margin:16px 0 8px}
+.fi{width:100%;padding:10px 12px;border-radius:8px;border:1px solid #eee;font-size:14px;outline:none}
+textarea.fi{resize:none;height:72px;font-size:13px}
+.bp{background:none;border:none;font-size:14px;padding:0;margin-bottom:16px}
+.empty{text-align:center;padding:40px 16px;color:#bbb}
+.empty .ei{font-size:36px;margin-bottom:8px}
+
+/* 출석버튼 */
+.abtn{display:flex;align-items:center;justify-content:space-between;width:100%;padding:12px 16px;border-radius:10px;border:1.5px solid #eee;background:#fff;text-align:left;margin-bottom:6px;transition:all .15s}
+.abtn.on{border-color:var(--c);background:var(--cl)}
+.aci{width:32px;height:32px;border-radius:50%;background:#f0f0f0;display:flex;align-items:center;justify-content:center;font-size:14px;font-weight:600;color:#aaa;flex-shrink:0}
+.abtn.on .aci{background:var(--c);color:#fff}
+
+/* 학년 카드 (출석탭 학년 선택) */
+.gcard{background:#fff;border-radius:14px;border:1.5px solid #eee;padding:16px;margin-bottom:10px;cursor:pointer;transition:all .15s}
+.gcard:hover{border-color:var(--c)}
+.gcard.mine{border-color:var(--c);background:var(--cl)}
+
+/* 날짜피커 */
+.dpbox{background:#fff;border-radius:12px;border:1px solid #eee;padding:16px;margin-bottom:12px;max-height:260px;overflow-y:auto}
+.sc{padding:6px 12px;border-radius:20px;border:1.5px solid #eee;background:#fafafa;font-size:13px;color:#555;margin:3px;display:inline-block}
+
+/* iOS 배너 */
+#ios-banner{display:none;position:fixed;bottom:0;left:0;right:0;z-index:999;padding:14px 16px;background:#1D9E75;color:#fff;box-shadow:0 -2px 12px rgba(0,0,0,.15)}
+#install-banner{display:none;position:fixed;bottom:0;left:0;right:0;z-index:999;padding:12px 16px;background:#1D9E75;color:#fff;align-items:center;justify-content:space-between;box-shadow:0 -2px 12px rgba(0,0,0,.15)}
+</style>
+</head>
+<body>
+<div id="app">
+
+<!-- 로그인 -->
+<div id="login-wrap">
+  <div style="text-align:center;margin-bottom:32px">
+    <div style="font-size:44px;margin-bottom:8px">⛪</div>
+    <h1 style="font-size:20px;font-weight:700;color:#1a1a1a">순천침례교회</h1>
+    <p style="font-size:14px;color:#888;margin-top:4px">교육부 교사 앱</p>
+  </div>
+  <div class="lbox">
+    <p style="font-size:14px;font-weight:600;color:#333;margin-bottom:14px">선생님을 선택해주세요</p>
+    <div id="teacher-list"></div>
+  </div>
+  <p style="font-size:11px;color:#bbb;margin-top:16px">이름 선택 방식 · 로그인 정보는 저장되지 않아요</p>
+</div>
+
+<!-- 반 등록 (첫 로그인 시) -->
+<div id="class-wrap" style="display:none">
+  <div style="text-align:center;margin-bottom:28px">
+    <div style="font-size:36px;margin-bottom:8px">📋</div>
+    <h2 style="font-size:18px;font-weight:700;color:#1a1a1a" id="class-title"></h2>
+    <p style="font-size:13px;color:#888;margin-top:6px">담당 반을 선택해주세요<br><span style="font-size:11px;color:#bbb">한 번만 설정하면 다음부터 자동으로 열려요</span></p>
+  </div>
+  <div style="width:100%;max-width:360px">
+    <p style="font-size:12px;font-weight:600;color:#888;margin-bottom:10px">🌱 유·초등부</p>
+    <div id="class-el"></div>
+    <p style="font-size:12px;font-weight:600;color:#888;margin:16px 0 10px">🔥 청소년부</p>
+    <div id="class-yo"></div>
+    <button onclick="skipClassSetup()" style="width:100%;padding:12px;border:none;background:none;font-size:13px;color:#bbb;margin-top:8px">
+      담임 없음 (건너뛰기)
+    </button>
+  </div>
+</div>
+
+<!-- 메인 앱 -->
+<div id="main-app" style="display:none;flex-direction:column;flex:1">
+  <div id="header">
+    <div style="display:flex;justify-content:space-between;align-items:center">
+      <div>
+        <div style="font-size:11px;opacity:.75">순천침례교회 교육부</div>
+        <div id="hname" style="font-size:16px;font-weight:700"></div>
+      </div>
+      <button onclick="logout()" style="background:rgba(255,255,255,.2);border:none;border-radius:8px;color:#fff;font-size:11px;padding:6px 10px">로그아웃</button>
+    </div>
+    <div style="display:flex;gap:4px;margin-top:12px">
+      <button class="dtab on" id="dt-el" onclick="switchDept('elementary')">🌱 유·초등부</button>
+      <button class="dtab" id="dt-yo" onclick="switchDept('youth')">🔥 청소년부</button>
+    </div>
+  </div>
+  <div id="ftabs">
+    <button class="ftab on" id="ft-attendance" onclick="switchTab('attendance')"><div class="ic">✅</div><div class="lb">출석</div></button>
+    <button class="ftab" id="ft-students" onclick="switchTab('students')"><div class="ic">👤</div><div class="lb">학생</div></button>
+    <button class="ftab" id="ft-prayer" onclick="switchTab('prayer')"><div class="ic">🙏</div><div class="lb">기도</div></button>
+    <button class="ftab" id="ft-board" onclick="switchTab('board')"><div class="ic">📢</div><div class="lb">게시판</div></button>
+  </div>
+  <div id="content">
+    <div id="p-attendance" class="panel on"></div>
+    <div id="p-students" class="panel"></div>
+    <div id="p-prayer" class="panel"></div>
+    <div id="p-board" class="panel"></div>
+  </div>
+</div>
+</div>
+
+<!-- iOS 배너 -->
+<div id="ios-banner">
+  <div style="display:flex;justify-content:space-between;align-items:flex-start;margin-bottom:8px">
+    <div style="display:flex;align-items:center;gap:8px">
+      <span style="font-size:22px">⛪</span>
+      <div style="font-size:13px;font-weight:600">홈 화면에 추가하기</div>
+    </div>
+    <button onclick="document.getElementById('ios-banner').style.display='none';localStorage.setItem('ib','1')" style="background:rgba(255,255,255,.2);color:#fff;border:none;border-radius:6px;padding:4px 8px;font-size:12px">✕</button>
+  </div>
+  <div style="font-size:12px;opacity:.9;line-height:1.6">아래 <strong>공유버튼(□↑)</strong> 누른 후 <strong>"홈 화면에 추가"</strong> 선택</div>
+  <div style="text-align:center;margin-top:6px;font-size:18px">▼</div>
+</div>
+<div id="install-banner">
+  <div style="display:flex;align-items:center;gap:10px">
+    <span style="font-size:24px">⛪</span>
+    <div><div style="font-size:13px;font-weight:600">홈 화면에 추가</div><div style="font-size:11px;opacity:.85">앱처럼 바로 사용</div></div>
+  </div>
+  <div style="display:flex;gap:8px">
+    <button id="install-btn" style="padding:8px 14px;background:#fff;color:#1D9E75;border:none;border-radius:8px;font-size:12px;font-weight:700">추가</button>
+    <button onclick="document.getElementById('install-banner').style.display='none';localStorage.setItem('ib','1')" style="padding:8px 10px;background:rgba(255,255,255,.2);color:#fff;border:none;border-radius:8px;font-size:12px">✕</button>
+  </div>
+</div>
+
+<script>
+// ══ Firebase 설정 ══
+const firebaseConfig = {
+  apiKey: "AIzaSyCPdM-6WlBVTIz1INaXBI9c4Q_UB5YtilU",
+  authDomain: "churchschool-84efc.firebaseapp.com",
+  databaseURL: "https://churchschool-84efc-default-rtdb.asia-southeast1.firebasedatabase.app",
+  projectId: "churchschool-84efc",
+  storageBucket: "churchschool-84efc.firebasestorage.app",
+  messagingSenderId: "1058451866839",
+  appId: "1:1058451866839:web:b7c8a7e59a46d3764b5c92"
+};
+firebase.initializeApp(firebaseConfig);
+const db = firebase.database();
+
+// ══ 상수 ══
+const TEACHER_LIST = [
+  "박여미","정요환","김민지","탁은선","장옥주",
+  "추미옥","변미영","배현진","신순호","유경숙",
+  "고운석","주재호","임지은","박은희","주호영"
+];
+
+const CLASSES = {
+  elementary: ["유치부","초등1학년","초등2학년","초등3학년","초등4학년","초등5학년","초등6학년"],
+  youth: ["중등 남반","고등 남반","중고 여합반"]
+};
+
+const DEPT = {
+  elementary: { name:"유·초등부", emoji:"🌱", color:"#1D9E75", light:"#E1F5EE" },
+  youth:      { name:"청소년부",  emoji:"🔥", color:"#534AB7", light:"#EEEDFE" }
+};
+
+const CAT_COLORS = { "공지":"#E24B4A","일정":"#378ADD","광고":"#1D9E75","요청":"#EF9F27" };
+
+// ══ 전역 상태 ══
+let currentUser = null;   // { name, myClass, myDept }
+let currentDept = "elementary";
+let currentTab = "attendance";
+let selectedDate = getTodaySunday();
+let showDatePicker = false;
+let attendData = {};
+let studentsCache = {};
+
+// ══ 날짜 유틸 ══
+function getTodaySunday() {
+  const t = new Date(), day = t.getDay();
+  t.setDate(t.getDate() - day);
+  return t.toISOString().slice(0,10);
+}
+function getSundays() {
+  const arr = [], d = new Date("2026-01-04");
+  while (d.getFullYear() === 2026) { arr.push(d.toISOString().slice(0,10)); d.setDate(d.getDate()+7); }
+  return arr;
+}
+function fmtDate(s) { const d=new Date(s+"T00:00:00"); return `${d.getMonth()+1}월 ${d.getDate()}일`; }
+function fmtBirth(s) { if(!s) return "-"; const[,m,d]=s.split("-"); return `${+m}월 ${+d}일`; }
+function isThisMonth(s) { return s && +s.split("-")[1] === new Date().getMonth()+1; }
+
+// ══ 색상 ══
+function setDeptColor(dept) {
+  const d = DEPT[dept];
+  document.getElementById("header").style.background = d.color;
+  document.querySelectorAll(".ftab.on").forEach(el => {
+    el.style.borderBottomColor = d.color;
+    el.querySelector(".lb").style.color = d.color;
+  });
+  document.getElementById("dt-el").style.color = dept==="elementary" ? d.color : "#fff";
+  document.getElementById("dt-yo").style.color = dept==="youth" ? d.color : "#fff";
+  document.documentElement.style.setProperty("--c", d.color);
+  document.documentElement.style.setProperty("--cl", d.light);
+}
+
+// ══════════════════════════════════════════
+// 로그인
+// ══════════════════════════════════════════
+(function renderLogin() {
+  const grid = document.createElement("div");
+  grid.style.cssText = "display:grid;grid-template-columns:repeat(3,1fr);gap:8px;margin-bottom:4px";
+  TEACHER_LIST.forEach((name, i) => {
+    const btn = document.createElement("button");
+    btn.className = "tbtn";
+    btn.textContent = name;
+    btn.onclick = () => selectTeacher(name);
+    grid.appendChild(btn);
+  });
+  document.getElementById("teacher-list").appendChild(grid);
+})();
+
+function selectTeacher(name) {
+  // localStorage에서 담당 반 확인
+  const saved = localStorage.getItem("myClass_" + name);
+  const savedDept = localStorage.getItem("myDept_" + name);
+  currentUser = { name, myClass: saved || null, myDept: savedDept || null };
+
+  if (!saved) {
+    // 첫 로그인 → 반 등록 화면
+    showClassSetup(name);
+  } else {
+    doLogin();
+  }
+}
+
+function showClassSetup(name) {
+  document.getElementById("login-wrap").style.display = "none";
+  document.getElementById("class-wrap").style.display = "flex";
+  document.getElementById("class-title").textContent = name + " 선생님";
+
+  const elDiv = document.getElementById("class-el");
+  const yoDiv = document.getElementById("class-yo");
+  elDiv.innerHTML = ""; yoDiv.innerHTML = "";
+
+  CLASSES.elementary.forEach(cls => {
+    const btn = document.createElement("button");
+    btn.className = "cbtn";
+    btn.innerHTML = `<span style="font-size:20px">🌱</span><span>${cls}</span>`;
+    btn.onclick = () => confirmClass("elementary", cls);
+    elDiv.appendChild(btn);
+  });
+  CLASSES.youth.forEach(cls => {
+    const btn = document.createElement("button");
+    btn.className = "cbtn";
+    btn.innerHTML = `<span style="font-size:20px">🔥</span><span>${cls}</span>`;
+    btn.onclick = () => confirmClass("youth", cls);
+    yoDiv.appendChild(btn);
+  });
+}
+
+function confirmClass(dept, cls) {
+  localStorage.setItem("myClass_" + currentUser.name, cls);
+  localStorage.setItem("myDept_" + currentUser.name, dept);
+  currentUser.myClass = cls;
+  currentUser.myDept = dept;
+  doLogin();
+}
+
+function skipClassSetup() {
+  localStorage.setItem("myClass_" + currentUser.name, "none");
+  localStorage.setItem("myDept_" + currentUser.name, "none");
+  currentUser.myClass = "none";
+  currentUser.myDept = "none";
+  doLogin();
+}
+
+function doLogin() {
+  document.getElementById("login-wrap").style.display = "none";
+  document.getElementById("class-wrap").style.display = "none";
+  document.getElementById("main-app").style.display = "flex";
+
+  // 담임반이 있으면 해당 부서로 시작
+  const startDept = (currentUser.myDept && currentUser.myDept !== "none")
+    ? currentUser.myDept : "elementary";
+
+  document.getElementById("hname").textContent = "안녕하세요, " + currentUser.name + " 선생님";
+  switchDept(startDept);
+  switchTab("attendance");
+}
+
+function logout() {
+  currentUser = null;
+  document.getElementById("main-app").style.display = "none";
+  document.getElementById("login-wrap").style.display = "flex";
+}
+
+// ══════════════════════════════════════════
+// 부서 / 탭 전환
+// ══════════════════════════════════════════
+function switchDept(dept) {
+  currentDept = dept;
+  document.getElementById("dt-el").classList.toggle("on", dept==="elementary");
+  document.getElementById("dt-yo").classList.toggle("on", dept==="youth");
+  setDeptColor(dept);
+  renderTab(currentTab);
+}
+
+function switchTab(tab) {
+  currentTab = tab;
+  document.querySelectorAll(".ftab").forEach(el => {
+    el.classList.remove("on");
+    el.style.borderBottomColor = "transparent";
+    el.querySelector(".lb").style.color = "#aaa";
+    el.querySelector(".lb").style.fontWeight = "400";
+  });
+  document.querySelectorAll(".panel").forEach(el => el.classList.remove("on"));
+  const ft = document.getElementById("ft-"+tab);
+  ft.classList.add("on");
+  ft.style.borderBottomColor = DEPT[currentDept].color;
+  ft.querySelector(".lb").style.color = DEPT[currentDept].color;
+  ft.querySelector(".lb").style.fontWeight = "600";
+  document.getElementById("p-"+tab).classList.add("on");
+  renderTab(tab);
+}
+
+function renderTab(tab) {
+  if (tab==="attendance") renderAttendance();
+  if (tab==="students")   renderStudents();
+  if (tab==="prayer")     renderPrayer();
+  if (tab==="board")      renderBoard();
+}
+
+// ══════════════════════════════════════════
+// 출석 탭 - 학년별 카드 → 클릭 → 학생 목록
+// ══════════════════════════════════════════
+let attendView = "grades"; // grades | students
+let attendClass = null;
+
+function renderAttendance() {
+  db.ref(`students/${currentDept}`).on("value", snap => {
+    studentsCache = snap.val() || {};
+    if (attendView === "grades") drawGrades();
+    else drawAttendStudents();
+  });
+}
+
+function drawGrades() {
+  const d = DEPT[currentDept];
+  const panel = document.getElementById("p-attendance");
+  const classes = CLASSES[currentDept];
+  const sundays = getSundays();
+  const byMonth = {};
+  sundays.forEach(s => { const m=s.slice(5,7)+"월"; if(!byMonth[m]) byMonth[m]=[]; byMonth[m].push(s); });
+
+  // 날짜 선택 버튼
+  const dpHtml = showDatePicker ? `<div class="dpbox">${
+    Object.entries(byMonth).map(([m,dates]) =>
+      `<div class="sl" style="margin-top:0">${m}</div><div>${dates.map(dt =>
+        `<button class="sc" onclick="selectDate('${dt}')"
+          style="border-color:${selectedDate===dt?d.color:'#eee'};background:${selectedDate===dt?d.light:'#fafafa'};color:${selectedDate===dt?d.color:'#555'};font-weight:${selectedDate===dt?'600':'400'}">
+          ${fmtDate(dt)}</button>`).join("")}</div>`).join("")}</div>` : "";
+
+  // 학년별 출석 집계
+  const countByClass = {};
+  const students = Object.entries(studentsCache).map(([id,v])=>({id,...v}));
+  classes.forEach(cls => {
+    const classStudents = students.filter(s => s.classname === cls);
+    countByClass[cls] = { total: classStudents.length, ids: classStudents.map(s=>s.id) };
+  });
+
+  // 출석 데이터 가져와서 카드 그리기
+  db.ref(`attendance/${currentDept}/${selectedDate}`).once("value", snap => {
+    const att = snap.val() || {};
+    const cardsHtml = classes.map(cls => {
+      const info = countByClass[cls];
+      const present = info.ids.filter(id => att[id]?.present).length;
+      const total = info.total;
+      const isMyClass = currentUser.myClass === cls;
+      const pct = total > 0 ? Math.round(present/total*100) : 0;
+      return `<div class="gcard ${isMyClass?'mine':''}" onclick="openClassAttend('${cls}')">
+        <div style="display:flex;justify-content:space-between;align-items:center">
+          <div style="display:flex;align-items:center;gap:10px">
+            <div style="font-size:22px">${isMyClass?'⭐':'📋'}</div>
+            <div>
+              <div style="font-size:15px;font-weight:600;color:${isMyClass?d.color:'#1a1a1a'}">${cls}</div>
+              ${isMyClass?`<div style="font-size:11px;color:${d.color};font-weight:600">내 반</div>`:''}
+            </div>
+          </div>
+          <div style="text-align:right">
+            <div style="font-size:20px;font-weight:700;color:${d.color}">${present}<span style="font-size:13px;color:#aaa">/${total}</span></div>
+            <div style="font-size:11px;color:${total>0?d.color:'#bbb'}">${total>0?pct+'%':'학생 없음'}</div>
+          </div>
+        </div>
+      </div>`;
+    }).join("");
+
+    panel.innerHTML = `
+      <button onclick="toggleDP()" style="width:100%;padding:12px 16px;background:#fff;border-radius:12px;border:1.5px solid ${d.color};display:flex;justify-content:space-between;align-items:center;margin-bottom:12px">
+        <span style="font-size:15px;font-weight:600;color:${d.color}">📅 ${fmtDate(selectedDate)} (일)</span>
+        <span style="font-size:12px;color:${d.color}">${showDatePicker?"▲ 닫기":"▼ 날짜 변경"}</span>
+      </button>
+      ${dpHtml}
+      ${cardsHtml}`;
+  });
+}
+
+function openClassAttend(cls) {
+  attendClass = cls;
+  attendView = "students";
+  db.ref(`attendance/${currentDept}/${selectedDate}`).on("value", snap => {
+    attendData = snap.val() || {};
+    drawAttendStudents();
+  });
+}
+
+function drawAttendStudents() {
+  const d = DEPT[currentDept];
+  const panel = document.getElementById("p-attendance");
+  const students = Object.entries(studentsCache)
+    .map(([id,v])=>({id,...v}))
+    .filter(s => s.classname === attendClass)
+    .sort((a,b) => a.name.localeCompare(b.name));
+
+  const present = students.filter(s => attendData[s.id]?.present).length;
+  const total = students.length;
+
+  const listHtml = students.length === 0
+    ? `<div class="empty"><div class="ei">👤</div><p>학생 탭에서 학생을 추가하세요</p></div>`
+    : students.map(s => {
+        const on = !!attendData[s.id]?.present;
+        const by = attendData[s.id]?.checkedBy||"";
+        return `<button class="abtn ${on?'on':''}" onclick="toggleAttend('${s.id}')">
+          <div style="display:flex;align-items:center;gap:10px">
+            <div class="aci">${on?"✓":s.name[0]}</div>
+            <div>
+              <div style="font-size:14px;font-weight:500;color:${on?d.color:'#333'}">${s.name}</div>
+              ${on&&by?`<div style="font-size:11px;color:${d.color};opacity:.8">${by} 확인</div>`:""}
+            </div>
+          </div>
+          <div style="font-size:12px;font-weight:600;color:${on?d.color:'#ccc'}">${on?"출석":"미출석"}</div>
+        </button>`;
+      }).join("");
+
+  panel.innerHTML = `
+    <button class="bp" onclick="attendView='grades';drawGrades()" style="color:${d.color}">← ${attendClass}</button>
+    <div style="background:${d.light};border-radius:12px;padding:16px;margin-bottom:16px;display:flex;justify-content:space-between;align-items:center">
+      <div>
+        <div style="font-size:12px;color:${d.color};font-weight:600">${fmtDate(selectedDate)}</div>
+        <div style="font-size:28px;font-weight:700;color:${d.color}">${present}<span style="font-size:16px;font-weight:400">/${total}</span></div>
+      </div>
+      <div style="text-align:right">
+        <div style="font-size:12px;color:${d.color}">출석률</div>
+        <div style="font-size:22px;font-weight:700;color:${d.color}">${total>0?Math.round(present/total*100):0}%</div>
+      </div>
+    </div>
+    ${listHtml}`;
+}
+
+function toggleAttend(sid) {
+  const val = attendData[sid] ? null : { present:true, checkedBy:currentUser.name, at:new Date().toISOString() };
+  db.ref(`attendance/${currentDept}/${selectedDate}/${sid}`).set(val);
+}
+function toggleDP() { showDatePicker=!showDatePicker; drawGrades(); }
+function selectDate(dt) { selectedDate=dt; showDatePicker=false; attendView="grades"; renderAttendance(); }
+
+// ══════════════════════════════════════════
+// 학생 탭
+// ══════════════════════════════════════════
+let stuView = "list"; // list | detail | form
+let stuSelected = null;
+let stuForm = {name:"",birth:"",grade:"",phone:"",note:""};
+let stuEdit = false;
+let stuData = {};
+
+function renderStudents() {
+  db.ref(`students/${currentDept}`).on("value", snap => {
+    stuData = snap.val() || {};
+    drawStudents();
+  });
+}
+
+function drawStudents() {
+  const d = DEPT[currentDept];
+  const panel = document.getElementById("p-students");
+  const all = Object.entries(stuData).map(([id,v])=>({id,...v}))
+    .sort((a,b)=>(a.classname||"").localeCompare(b.classname||"")||a.name.localeCompare(b.name));
+
+  // 상세 보기
+  if (stuView==="detail" && stuSelected) {
+    const s = stuSelected;
+    panel.innerHTML = `
+      <button class="bp" onclick="stuView='list';drawStudents()" style="color:${d.color}">← 목록으로</button>
+      <div class="card" style="padding:24px">
+        <div style="text-align:center;margin-bottom:20px">
+          <div class="av" style="width:64px;height:64px;font-size:24px;margin:0 auto 12px">${s.name[0]}</div>
+          <div style="font-size:20px;font-weight:600">${s.name}</div>
+          <div style="font-size:13px;color:#888;margin-top:4px">${s.classname||""}</div>
+        </div>
+        <div style="border-top:1px solid #f0f0f0;padding-top:16px">
+          ${[["반",s.classname||"-"],["생일",fmtBirth(s.birth)],["연락처",s.phone||"-"],["메모",s.note||"-"]].map(([l,v])=>
+            `<div style="display:flex;justify-content:space-between;padding:10px 0;border-bottom:1px solid #f8f8f8">
+              <span style="font-size:13px;color:#888">${l}</span>
+              <span style="font-size:13px;font-weight:500">${v}</span>
+            </div>`).join("")}
+        </div>
+        ${currentUser.myClass === s.classname || currentUser.myClass === "none" || !currentUser.myClass ? `
+        <div style="display:flex;gap:8px;margin-top:20px">
+          <button onclick="openStuEdit()" style="flex:1;padding:10px;background:${d.color};color:#fff;border:none;border-radius:8px;font-size:13px;font-weight:600">수정</button>
+          <button onclick="deleteStu('${s.id}')" style="padding:10px 16px;background:#fff;border:1px solid #ffcdd2;border-radius:8px;font-size:13px;color:#e57373">삭제</button>
+        </div>` : ""}
+      </div>`;
+    return;
+  }
+
+  // 폼
+  if (stuView==="form") {
+    const classes = [...CLASSES.elementary, ...CLASSES.youth];
+    panel.innerHTML = `
+      <button class="bp" onclick="stuView=${stuEdit?"'detail'":"'list'"};drawStudents()" style="color:${d.color}">← 취소</button>
+      <div style="font-size:16px;font-weight:600;margin-bottom:20px">${stuEdit?"학생 정보 수정":"새 학생 추가"}</div>
+      <div style="display:flex;flex-direction:column;gap:12px">
+        <div><div style="font-size:12px;color:#888;margin-bottom:6px">이름 *</div>
+          <input class="fi" id="sf-name" value="${stuForm.name||""}" placeholder="이름 입력"></div>
+        <div><div style="font-size:12px;color:#888;margin-bottom:6px">반 선택</div>
+          <div style="display:flex;flex-wrap:wrap;gap:6px">
+            ${classes.map(c=>`<button onclick="stuForm.classname='${c}';drawStudents()"
+              style="padding:6px 12px;border-radius:20px;border:1.5px solid ${stuForm.classname===c?d.color:'#eee'};background:${stuForm.classname===c?d.light:'#fff'};font-size:12px;color:${stuForm.classname===c?d.color:'#555'};font-weight:${stuForm.classname===c?'600':'400'}">${c}</button>`).join("")}
+          </div>
+        </div>
+        <div><div style="font-size:12px;color:#888;margin-bottom:6px">생일</div>
+          <input class="fi" type="date" id="sf-birth" value="${stuForm.birth||""}"></div>
+        <div><div style="font-size:12px;color:#888;margin-bottom:6px">연락처</div>
+          <input class="fi" id="sf-phone" value="${stuForm.phone||""}" placeholder="010-0000-0000"></div>
+        <div><div style="font-size:12px;color:#888;margin-bottom:6px">메모</div>
+          <textarea class="fi" id="sf-note" placeholder="특이사항 등...">${stuForm.note||""}</textarea></div>
+        <button onclick="saveStu()" style="padding:14px;background:${d.color};color:#fff;border:none;border-radius:10px;font-size:15px;font-weight:600">
+          ${stuEdit?"수정 완료":"추가하기"}</button>
+      </div>`;
+    return;
+  }
+
+  // 목록 - 반별로 그룹
+  const myClass = currentUser.myClass;
+  const isTeacher = myClass && myClass !== "none";
+  const byClass = {};
+  all.forEach(s => { const c=s.classname||"미분류"; if(!byClass[c]) byClass[c]=[]; byClass[c].push(s); });
+
+  const birthdayKids = all.filter(s=>isThisMonth(s.birth));
+  const bdHtml = birthdayKids.length > 0 ? `
+    <div style="background:#FFF8E1;border-radius:12px;padding:14px;margin-bottom:16px;border:1px solid #FFE082">
+      <div style="font-size:12px;font-weight:600;color:#F57F17;margin-bottom:8px">🎂 이달의 생일</div>
+      <div style="display:flex;flex-wrap:wrap;gap:6px">${birthdayKids.map(s=>`<span style="font-size:12px;background:#fff;padding:4px 10px;border-radius:20px;border:1px solid #FFE082">${s.name} (${fmtBirth(s.birth)})</span>`).join("")}</div>
+    </div>` : "";
+
+  // 내 반 먼저, 나머지는 뒤에
+  const classOrder = isTeacher
+    ? [[myClass, byClass[myClass]||[]], ...Object.entries(byClass).filter(([c])=>c!==myClass)]
+    : Object.entries(byClass);
+
+  const listHtml = classOrder.map(([cls, students]) => {
+    if (!students || students.length === 0) return "";
+    const isMine = cls === myClass;
+    return `<div style="margin-bottom:20px">
+      <div style="display:flex;align-items:center;gap:6px;margin-bottom:8px">
+        ${isMine?`<span style="font-size:14px">⭐</span>`:''}
+        <div style="font-size:13px;font-weight:600;color:${isMine?d.color:'#888'}">${cls}</div>
+        ${isMine?`<span style="font-size:11px;color:${d.color};background:${d.light};padding:2px 8px;border-radius:10px;font-weight:600">내 반</span>`:''}
+      </div>
+      ${students.map(s=>`
+        <button class="row" onclick="stuSelected={id:'${s.id}',...stuData['${s.id}']};stuView='detail';drawStudents()">
+          <div class="av">${s.name[0]}</div>
+          <div style="flex:1">
+            <div style="font-size:14px;font-weight:500">${s.name} ${isThisMonth(s.birth)?"🎂":""}</div>
+            <div style="font-size:12px;color:#aaa">${s.birth?fmtBirth(s.birth):""}</div>
+          </div>
+          <span style="font-size:14px;color:#ccc">›</span>
+        </button>`).join("")}
+    </div>`;
+  }).join("");
+
+  const canAdd = !isTeacher || currentUser.myClass === myClass || true; // 담임은 자기 반에만
+  panel.innerHTML = `
+    ${bdHtml}
+    <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:16px">
+      <div style="font-size:14px;font-weight:600;color:#333">전체 학생 ${all.length}명</div>
+      ${isTeacher?`<button onclick="stuForm={name:'',birth:'',grade:'',phone:'',note:'',classname:'${myClass}'};stuEdit=false;stuView='form';drawStudents()"
+        style="padding:8px 16px;background:${d.color};color:#fff;border:none;border-radius:8px;font-size:13px;font-weight:600">+ 내 반 학생 추가</button>`
+      :`<button onclick="stuForm={name:'',birth:'',grade:'',phone:'',note:''};stuEdit=false;stuView='form';drawStudents()"
+        style="padding:8px 16px;background:${d.color};color:#fff;border:none;border-radius:8px;font-size:13px;font-weight:600">+ 학생 추가</button>`}
+    </div>
+    ${all.length===0?`<div class="empty"><div class="ei">👤</div><p>+ 학생 추가 버튼으로 등록하세요</p></div>`:listHtml}`;
+}
+
+function openStuEdit() {
+  const s = stuSelected;
+  stuForm = {name:s.name||"",birth:s.birth||"",classname:s.classname||"",phone:s.phone||"",note:s.note||""};
+  stuEdit = true; stuView = "form"; drawStudents();
+}
+
+function saveStu() {
+  const form = {
+    name: document.getElementById("sf-name").value.trim(),
+    birth: document.getElementById("sf-birth").value,
+    classname: stuForm.classname || "",
+    phone: document.getElementById("sf-phone").value.trim(),
+    note: document.getElementById("sf-note").value.trim(),
+  };
+  if (!form.name) return alert("이름을 입력해주세요");
+  if (stuEdit) {
+    db.ref(`students/${currentDept}/${stuSelected.id}`).update({...form, updatedBy:currentUser.name})
+      .then(()=>{ stuSelected={...stuSelected,...form}; stuView="detail"; drawStudents(); });
+  } else {
+    db.ref(`students/${currentDept}`).push({...form, addedBy:currentUser.name, addedAt:new Date().toISOString()})
+      .then(()=>{ stuView="list"; drawStudents(); });
+  }
+}
+
+function deleteStu(id) {
+  if (!confirm("정말 삭제할까요?")) return;
+  db.ref(`students/${currentDept}/${id}`).remove().then(()=>{ stuView="list"; drawStudents(); });
+}
+
+// ══════════════════════════════════════════
+// 기도 탭
+// ══════════════════════════════════════════
+let prayData = {};
+let prayStu = null;
+
+function renderPrayer() {
+  db.ref(`students/${currentDept}`).on("value", s1 => {
+    const stus = s1.val()||{};
+    db.ref(`prayers/${currentDept}`).on("value", s2 => {
+      prayData = s2.val()||{};
+      drawPrayer(stus);
+    });
+  });
+}
+
+function drawPrayer(stus) {
+  const d = DEPT[currentDept];
+  const panel = document.getElementById("p-prayer");
+  const all = Object.entries(stus||stuData).map(([id,v])=>({id,...v}))
+    .sort((a,b)=>(a.classname||"").localeCompare(b.classname||"")||a.name.localeCompare(b.name));
+
+  if (prayStu) {
+    const s = prayStu;
+    const prayers = prayData[s.id] ? Object.entries(prayData[s.id]) : [];
+    panel.innerHTML = `
+      <button class="bp" onclick="prayStu=null;renderPrayer()" style="color:${d.color}">← 기도 제목 목록</button>
+      <div style="display:flex;align-items:center;gap:12px;margin-bottom:20px">
+        <div class="av" style="width:44px;height:44px;font-size:18px">${s.name[0]}</div>
+        <div>
+          <div style="font-size:16px;font-weight:600">${s.name}</div>
+          <div style="font-size:12px;color:#888">${s.classname||""} · ${prayers.length}개</div>
+        </div>
+      </div>
+      <div style="background:${d.light};border-radius:12px;padding:14px;margin-bottom:16px">
+        <textarea id="pi" placeholder="기도 제목을 입력하세요..."
+          style="width:100%;padding:10px;border-radius:8px;border:1px solid #ddd;font-size:13px;resize:none;height:80px;box-sizing:border-box;outline:none;font-family:inherit"></textarea>
+        <button onclick="addPrayer('${s.id}')" style="margin-top:8px;padding:8px 16px;background:${d.color};color:#fff;border:none;border-radius:8px;font-size:13px;font-weight:600">추가</button>
+      </div>
+      <div id="plist">
+        ${prayers.length===0?`<div class="empty"><p>아직 기도 제목이 없어요 🙏</p></div>`
+          :prayers.map(([id,p])=>`
+            <div class="card">
+              <div style="font-size:14px;color:#333;line-height:1.5;margin-bottom:8px">${p.text}</div>
+              <div style="display:flex;justify-content:space-between">
+                <span style="font-size:11px;color:#aaa">${p.by} · ${(p.at||"").slice(0,10)}</span>
+                ${p.by===currentUser.name?`<button onclick="delPray('${s.id}','${id}')" style="background:none;border:none;color:#ddd;font-size:12px">삭제</button>`:""}
+              </div>
+            </div>`).join("")}
+      </div>`;
+    return;
+  }
+
+  // 학생별 목록 - 반 구분
+  const byClass = {};
+  all.forEach(s=>{ const c=s.classname||"미분류"; if(!byClass[c]) byClass[c]=[]; byClass[c].push(s); });
+  const myClass = currentUser.myClass;
+  const classOrder = (myClass && myClass!=="none")
+    ? [[myClass, byClass[myClass]||[]], ...Object.entries(byClass).filter(([c])=>c!==myClass)]
+    : Object.entries(byClass);
+
+  const listHtml = classOrder.map(([cls, students])=>{
+    if(!students||students.length===0) return "";
+    const isMine = cls===myClass;
+    return `<div style="margin-bottom:20px">
+      <div style="font-size:12px;font-weight:600;color:${isMine?d.color:'#888'};margin-bottom:8px">${isMine?"⭐ ":""}${cls}${isMine?" (내 반)":""}</div>
+      ${students.map(s=>{
+        const cnt = prayData[s.id]?Object.keys(prayData[s.id]).length:0;
+        return `<button class="row" onclick="prayStu={id:'${s.id}',...(stuData['${s.id}']||{})};renderPrayer()">
+          <div class="av" style="background:${cnt>0?d.light:'#f5f5f5'};color:${cnt>0?d.color:'#bbb'}">${s.name[0]}</div>
+          <div style="flex:1"><div style="font-size:14px;font-weight:500">${s.name}</div><div style="font-size:12px;color:#aaa">${cls}</div></div>
+          ${cnt>0?`<span style="background:${d.color};color:#fff;font-size:11px;font-weight:600;padding:2px 8px;border-radius:12px">${cnt}</span>`:""}
+          <span style="font-size:14px;color:#ccc">›</span>
+        </button>`;
+      }).join("")}
+    </div>`;
+  }).join("");
+
+  panel.innerHTML = all.length===0
+    ? `<div class="empty"><div class="ei">🙏</div><p>등록된 학생이 없어요</p></div>`
+    : listHtml;
+}
+
+function addPrayer(sid) {
+  const t = document.getElementById("pi").value.trim();
+  if (!t) return;
+  db.ref(`prayers/${currentDept}/${sid}`).push({text:t, by:currentUser.name, at:new Date().toISOString()});
+}
+function delPray(sid, pid) { db.ref(`prayers/${currentDept}/${sid}/${pid}`).remove(); }
+
+// ══════════════════════════════════════════
+// 게시판 탭
+// ══════════════════════════════════════════
+let boardData = {};
+let bFilter = "전체";
+let bForm = {title:"",body:"",category:"공지"};
+let showBForm = false;
+
+function renderBoard() {
+  db.ref(`board/${currentDept}`).on("value", snap => {
+    boardData = snap.val()||{};
+    drawBoard();
+  });
+}
+
+function drawBoard() {
+  const d = DEPT[currentDept];
+  const panel = document.getElementById("p-board");
+  const posts = Object.entries(boardData).map(([id,v])=>({id,...v}))
+    .sort((a,b)=>(b.at||"").localeCompare(a.at||""));
+  const filtered = bFilter==="전체" ? posts : posts.filter(p=>p.category===bFilter);
+
+  const filters = ["전체","공지","일정","광고","요청"].map(c=>{
+    const cc=CAT_COLORS[c]||d.color, on=bFilter===c;
+    return `<button class="sc" onclick="bFilter='${c}';drawBoard()"
+      style="border-color:${on?cc:'#eee'};background:${on?cc+'22':'#fff'};color:${on?cc:'#888'};font-weight:${on?'600':'400'}">${c}</button>`;
+  }).join("");
+
+  const formHtml = showBForm ? `
+    <div class="card" style="margin-bottom:12px">
+      <div style="display:flex;flex-wrap:wrap;gap:6px;margin-bottom:10px">
+        ${["공지","일정","광고","요청"].map(c=>{const cc=CAT_COLORS[c];return`<button onclick="bForm.category='${c}';drawBoard()"
+          style="padding:4px 10px;border-radius:16px;border:1.5px solid ${bForm.category===c?cc:'#ddd'};background:${bForm.category===c?cc+'22':'#fff'};font-size:12px;color:${bForm.category===c?cc:'#888'};font-weight:${bForm.category===c?'600':'400'}">${c}</button>`;}).join("")}
+      </div>
+      <input id="bt" class="fi" placeholder="제목" value="${bForm.title||""}" style="margin-bottom:8px">
+      <textarea id="bb" class="fi" placeholder="내용 (선택)">${bForm.body||""}</textarea>
+      <div style="display:flex;gap:8px;margin-top:10px">
+        <button onclick="submitPost()" style="flex:1;padding:10px;background:${d.color};color:#fff;border:none;border-radius:8px;font-size:13px;font-weight:600">게시</button>
+        <button onclick="showBForm=false;drawBoard()" style="padding:10px 16px;background:#fff;border:1px solid #eee;border-radius:8px;font-size:13px;color:#888">취소</button>
+      </div>
+    </div>` : "";
+
+  const postsHtml = filtered.length===0
+    ? `<div class="empty"><div class="ei">📢</div><p>게시글이 없어요</p></div>`
+    : filtered.map(p=>{
+        const cc=CAT_COLORS[p.category]||d.color;
+        return `<div class="card">
+          <div style="display:flex;align-items:center;gap:6px;margin-bottom:6px">
+            <span style="font-size:11px;font-weight:600;color:${cc};background:${cc}18;padding:2px 8px;border-radius:10px">${p.category}</span>
+            <span style="font-size:13px;font-weight:600;flex:1">${p.title}</span>
+            ${p.by===currentUser.name?`<button onclick="delPost('${p.id}')" style="background:none;border:none;color:#ddd;font-size:18px">×</button>`:""}
+          </div>
+          ${p.body?`<div style="font-size:13px;color:#555;margin-bottom:8px;line-height:1.5">${p.body}</div>`:""}
+          <div style="font-size:11px;color:#bbb">${p.by} · ${(p.at||"").slice(0,10)}</div>
+        </div>`;
+      }).join("");
+
+  panel.innerHTML = `
+    <div style="display:flex;flex-wrap:wrap;align-items:center;margin-bottom:16px;gap:4px">
+      ${filters}
+      <button onclick="showBForm=!showBForm;drawBoard()" style="margin-left:auto;padding:5px 14px;border-radius:20px;background:${d.color};color:#fff;border:none;font-size:12px;font-weight:600">+ 작성</button>
+    </div>
+    ${formHtml}${postsHtml}`;
+}
+
+function submitPost() {
+  const title=document.getElementById("bt").value.trim();
+  const body=document.getElementById("bb").value.trim();
+  if(!title) return;
+  db.ref(`board/${currentDept}`).push({title,body,category:bForm.category,by:currentUser.name,at:new Date().toISOString()})
+    .then(()=>{ showBForm=false; bForm={title:"",body:"",category:"공지"}; });
+}
+function delPost(id) { if(confirm("삭제할까요?")) db.ref(`board/${currentDept}/${id}`).remove(); }
+
+// ══ PWA ══
+let deferredPrompt=null;
+window.addEventListener("beforeinstallprompt", e => {
+  e.preventDefault(); deferredPrompt=e;
+  if(!localStorage.getItem("ib")) {
+    document.getElementById("install-banner").style.display="flex";
+    document.getElementById("app").style.paddingBottom="72px";
+  }
+});
+document.getElementById("install-btn").onclick = () => {
+  if(!deferredPrompt) return;
+  deferredPrompt.prompt();
+  deferredPrompt.userChoice.then(()=>{ deferredPrompt=null; document.getElementById("install-banner").style.display="none"; document.getElementById("app").style.paddingBottom="0"; });
+};
+const isIos=/iphone|ipad|ipod/.test(navigator.userAgent.toLowerCase());
+const isStandalone=("standalone" in window.navigator)&&window.navigator.standalone;
+if(isIos&&!isStandalone&&!localStorage.getItem("ib")) {
+  setTimeout(()=>{ document.getElementById("ios-banner").style.display="block"; document.getElementById("app").style.paddingBottom="120px"; }, 2000);
+}
+</script>
+</body>
+</html>
